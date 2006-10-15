@@ -1,0 +1,118 @@
+<Instance><Name>Instance Name</Name>
+<Player>Player Name</Player>
+
+<Flag>Flag1</Flag>
+<Flag>Flag2</Flag>
+
+<Room>
+	<ID>ShortID</ID>
+	<Name>Room Name</Name>
+	<Desc>A very long description of the room.</Desc>
+	<Pic>Image.gif</Pic>
+	<Exit>
+		<ID>ID which Room exit leads to.</ID>
+		<Name>Which way exit leads.</Name>
+	</Exit>
+	<Exit>
+		<ID>ID which Room exit leads to.</ID>
+		<Name>Which way exit leads.</Name>
+	</Exit>
+	<Exit>
+		<ID>ID which Room exit leads to.</ID>
+		<Name>Which way exit leads.</Name>
+	</Exit>
+</Room>
+
+<Room>
+	<ID>ShortID</ID>
+	<Name>Room Name</Name>
+	<Desc>A very long description of the room.</Desc>
+	<Pic>Image.gif</Pic>
+	<Exit>
+		<ID>ID which Room exit leads to.</ID>
+		<Name>Which way exit leads.</Name>
+	</Exit>
+</Room>
+
+<Object>
+	<Action>
+		<Verb>Examine</Verb>
+		<Object>Target Object</Object>
+		<Room>Room ID</Room>
+		<Flag>Flag</Flag>
+		<Script>
+			<Type>Type</Type>
+			<Arg>Information</Arg>
+			<Arg>More Information</Arg>
+		</Script>
+		<Script>
+			<Type>Type</Type>
+			<Arg>Information</Arg>
+			<Arg>More Information</Arg>
+		</Script>
+	</Action>
+</Object>
+
+<Object>
+	<ID>ShortID</ID>
+	<Name>Room Name</Name>
+	<Desc>A very long description of the object.</Desc>
+	<Pic>Image.gif</Pic>
+	<Room>Room ID</Room>
+	<Action>
+		<Verb>Examine</Verb>
+		<Object>Target Object</Object>
+		<Room>Room ID</Room>
+		<Flag>Flag</Flag>
+		<Script>
+			<Type>Type</Type>
+			<Arg>Information</Arg>
+			<Arg>More Information</Arg>
+		</Script>
+		<Script>
+			<Type>Type</Type>
+			<Arg>Information</Arg>
+			<Arg>More Information</Arg>
+		</Script>
+	</Action>
+	<Action>
+		<Verb>Examine</Verb>
+		<Object>Target Object</Object>
+		<Room>Room ID</Room>
+		<Flag>Flag</Flag>
+		<Script>
+			<Type>Type</Type>
+			<Arg>Information</Arg>
+			<Arg>More Information</Arg>
+		</Script>
+		<Script>
+			<Type>Type</Type>
+			<Arg>Information</Arg>
+			<Arg>More Information</Arg>
+		</Script>
+	</Action>
+</Object>
+
+<Object>
+	<ID>God</ID>
+	<Name>Room Name</Name>
+	<Desc>A very long description of the object.</Desc>
+	<Pic>Image.gif</Pic>
+	<Room>Room ID</Room>
+	<Action>
+		<Verb>Examine</Verb>
+		<Object>Target Object</Object>
+		<Room>Room ID</Room>
+		<Flag>Flag</Flag>
+		<Script>
+			<Type>Type</Type>
+			<Arg>Information</Arg>
+			<Arg>More Information</Arg>
+		</Script>
+	</Action>
+</Object>
+
+
+</Instance>
+
+
