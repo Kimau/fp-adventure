@@ -49,8 +49,15 @@ void FPxml::loadFile(const char* _filename)
 		while(m_cursor[0] != EOF)
 		{
 			m_cursor[0] = fgetc(_file);
-			if((m_cursor[0] > 31) && (m_cursor[0] < 127))
+
+			if((m_cursor[0] > 31) && (m_cursor[0] < 127) &&				// IGNORE CONTROL CHARACTERS
+				!((m_cursor[0] == ' ') &&								// DONT ADD SPACE
+				((m_cursor[-1] == ' ') ||								// IF PREVIOUS WAS SPACE
+				 (m_cursor[-1] == '<') || (m_cursor[1] == '<') ||		// IF PREVIOUS OR NEXT IS <
+				 (m_cursor[-1] == '>') || (m_cursor[1] == '>'))))		// IF PREVIOUS OR NEXT IS >
+			{
 				++m_cursor;
+			}
 		}
 		m_cursor[0] = 0;
 		

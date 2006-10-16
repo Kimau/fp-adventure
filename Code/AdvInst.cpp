@@ -10,16 +10,6 @@
 			var = _subItem->m_Data;	\
 			break;
 
-#define FP_LOOP_OBJ(var)																\
-			for(unsigned int var = 0; var < m_Objects.size(); ++var)					\
-			if( stricmp(m_Objects[var].m_RoomID.c_str(),m_Rooms[1].m_ID.c_str()) ||		\
-				stricmp(m_Objects[var].m_RoomID.c_str(),m_Rooms[m_cRoom].m_ID.c_str()))
-
-#define FP_RUN_SCRIPTS(var)									\
-			for(vector<aScript>::iterator var;				\
-				var != _act->m_Scripts.begin(); ++var)		\
-					runScript(*(var));
-
 using namespace FPAdv;
 //==============================================================
 //	Create Blank Instance
@@ -55,7 +45,18 @@ Instance::Instance()
 Instance::~Instance()
 {
 }
+//==============================================================
+//	Fetch Output
+//==============================================================
+string Instance::fetchOutput()
+{
+	if(m_Output.empty())
+		return "";
 
+	string _str = m_Output.front();
+	m_Output.pop();
+	return _str;
+}
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //				FILE LOADING FUNCTIONS
@@ -326,131 +327,265 @@ void Instance::loadXscript(aScript& _script, FPxitem& _parent)
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //==============================================================
 //	Input Command
+//	Assumes Only A-Z,a-z, and ' '
 //==============================================================
-void Instance::inputCmd(const char* _input)
+void Instance::inputCmd(char* _input)
 {
 	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	//				PREP INPUT
 	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	prepString(_input);
 	//---------------------------
-	//	Setup Tokens
-	//	ScratchPad Needed
+	//	Check Length
 	//---------------------------
-	unsigned int _length = (unsigned int)strlen(_input);
-	char* _str = new char[_length];
-	strcpy(_str,_input);
-
-	//---------------------------
-	//	Remove Trailing Space
-	//---------------------------
-	if(_str[_length-1] == ' ')
-		_str[_length-1] = 0;
-
+	if(strlen(_input) < 4)
+		return;
 	//---------------------------
 	//	Seperate Words
 	//---------------------------
-	char* _tok = strtok(_str," ");
+	char* _tok = strtok(_input," ");
 	VecChar _words;
 	while(_tok)
 	{
-		if((strlen(_tok) > 2) && (strlen(_tok) < 12))
-			_words.push_back(_tok);
+		if(
+			(strlen(_tok) > 2)			&&		// Not too Short
+			(strlen(_tok) < 12)			&&		// Not too Long
+			(stricmp(_tok,"WITH") != 0)	&&		// ------------- 
+			(stricmp(_tok,"THE") != 0)	&&		// Ignore words players use that messes things up
+			(stricmp(_tok,"THIS") != 0)	&&		// ------------- 
+			(stricmp(_tok,"AROUND") != 0))
+				_words.push_back(_tok);
         
 		_tok = strtok(0," ");
 	}
+	//---------------------------
+	//	Not Valid Input
+	//---------------------------
+	if(_words.empty())
+	{
+		m_Output.push("Not Valid Input");
+		return;
+	}
+	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	//			PROCESS OBJECT SPECIFIC INPUT
+	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	//------------------------------
+	//	Search for Matching Objects
+	//	Skip FIRST object
+	//------------------------------
+	int _objectID = -1;
+	int _subjectID = -1;
+
+	if(_words.size() > 2)
+		findObject(_words[1],_objectID,_words[2],_subjectID);
+	else if(_words.size() > 1)
+		findObject(_words[1],_objectID,0,_subjectID);
 
 	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	//				PROCESS INPUT
+	//			PROCESS OBJECT VERB
 	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	int _objIndex = -1;
-	int _subIndex = -1;
-	bool _flag = false;
-	vector<TrigAction>::iterator _act;
-	//---------------------------
-	//	Find VERB
-	//---------------------------
-	FP_LOOP_OBJ(i)
+	if(_objectID >= 0)
 	{
-		uObject& _obj = m_Objects[i];
-		for(vector<TrigAction>::iterator _iter = _obj.m_Actions.begin(); _iter != _obj.m_Actions.end(); ++_iter)
+		for(int k = m_Objects[_objectID].m_Actions.size() - 1; k >= 0;  --k)
 		{
-			//---------------------------
-			//	Check Verb
-			//	Check Room
-			//---------------------------
-			if( (stricmp(_words.front(),_iter->m_Verb.c_str()) == 0) && 
-				(stricmp(m_Rooms[m_cRoom].m_ID.c_str(),_iter->m_Room.c_str()) == 0))
+			TrigAction& _act = m_Objects[_objectID].m_Actions[k];
+			if(checkAction(_act,_words[0],_objectID))
 			{
-				_objIndex = i;
-				_act = _iter;
+				//----------------------------------
+				//	Run Scripts
+				//----------------------------------
+				for(unsigned int i = 0; i < _act.m_Scripts.size(); ++i)
+					runScript(_act.m_Scripts[i]);
+				return;
 			}
 		}
 	}
-	//------------------------------
-	//	No Action Valid
-	//------------------------------
-	if(_objIndex < 0)
+	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	//			PROCESS GLOBAL VERB
+	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	for(int k = m_Objects[0].m_Actions.size() - 1; k >= 0;  --k)
+	{
+		TrigAction& _act = m_Objects[0].m_Actions[k];
+		if(checkAction(_act,_words[0],_objectID))
+		{
+			//----------------------------------
+			//	Run Scripts
+			//----------------------------------
+			for(unsigned int i = 0; i < _act.m_Scripts.size(); ++i)
+				runScript(_act.m_Scripts[i]);
+			return;
+		}
+	}
+	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	//			PROCESS STANDARD VERB
+	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	//-----------------------------------
+	//	LOOK
+	//	Prints out Desc
+	//-----------------------------------
+	if( (stricmp(_words[0],"LOOK") == 0)		|| 
+		(stricmp(_words[0],"EXAMINE") == 0)		||
+		(stricmp(_words[0],"INSPECT") == 0))
+	{
+		if(_objectID >= 0)
+			m_Output.push(m_Objects[_objectID].m_Desc);
+		else
+			m_Output.push(m_Rooms[m_cRoom].m_Desc);
 		return;
+	}
+	else 
+	//-----------------------------------
+	//	EXIT
+	//	Uses Exit
+	//-----------------------------------
+	if( (stricmp(_words[0],"EXIT") == 0)		|| 
+		(stricmp(_words[0],"MOVE") == 0)		||
+		(stricmp(_words[0],"GOTO") == 0))
+	{
+		//------------------------
+		//	TAKE EXIT
+		//------------------------
+		if(_words.size() > 1)
+		{
+			m_Output.push(m_Objects[_objectID].m_Desc);
+		}
+		//------------------------
+		//	PRINT OUT EXITS
+		//------------------------
+		else if(m_Rooms[m_cRoom].m_Exits.size() > 0)
+		{
+			string _str = "EXITS \\";
+			for(int i = m_Rooms[m_cRoom].m_Exits.size() - 1; i >= 0; --i)
+			{
+				_str += i;
+				_str += ". ";
+				_str += m_Rooms[m_cRoom].m_Exits[i].m_Name;
+				_str += "\\ ";
+			}
+			m_Output.push(_str);
+		}
+		//------------------------
+		//	NO VISIBLE EXIT
+		//------------------------
+		else
+		{
+			m_Output.push("There are no visible exits.");
+		}
+		return;
+	}
 
+	//-----------------------------
+	//	Inform Player of Results
+	//-----------------------------
+	if(_objectID < 0)
+	{
+		char _buffer[30] = {0};
+		strcat(_buffer,"I see no ");
+		strcat(_buffer,_words[1]);
+		strcat(_buffer," nearby.");
+		m_Output.push(_buffer);
+	}
+	else
+		m_Output.push("You cant do that at the moment");
+}
+//==============================================================
+//	Removes Leading/Trailing Spaces
+//==============================================================
+void Instance::prepString(char* _input)
+{
 	//---------------------------
+	//	Remove Leading Space
+	//---------------------------
+	while((_input[0] == ' ') && (_input[0] != 0))
+	{
+		_input = _input + 1;
+	}
+	//---------------------------
+	//	Remove Trailing Space
+	//---------------------------
+	{
+		char* _end = _input + strlen(_input) - 1;
+		while((_end[0] == ' ') && (_end > _input))
+		{
+			_end = 0;
+			--_end;
+		}
+	}
+}
+//==============================================================
+//	Check if action conditions are met
+//==============================================================
+bool Instance::checkAction(TrigAction& _act, const char* _verb, int _sID)
+{
+	//--------------------------------
+	//	Check Verb
+	//	MUST BE PRESENT
+	//--------------------------------
+	if((_verb == 0) || (stricmp(_act.m_Verb.c_str(), _verb) != 0))
+		return false;
+	//--------------------------------
 	//	Check Subject
-	//---------------------------
-	if(_act->m_Object.empty())
-	{
-		_subIndex = 0;
-	}
-	else
-	{
-		for(VecChar::iterator _word = (_words.begin() + 1); _word != _words.end(); ++_word)
-		{
-			//----------------------------
-			//	Subject Word Used
-			//----------------------------
-			if(stricmp(_act->m_Object.c_str(),*_word) == 0)
-			{
-				FP_LOOP_OBJ(k)
-				{
-					if(stricmp(m_Objects[k].m_ID.c_str(),*_word) == 0)
-					{
-						_subIndex = k;
-					}
-				}
-			}
-		}
-	}
-	//------------------------------
-	//	Required Subject Missing
-	//------------------------------
-	if(_subIndex < 0)
-		return;
+	//	ASSUME :: Subject ID is valid
+	//--------------------------------
+	if(!(_act.m_Object.empty())	&& (stricmp(_act.m_Object.c_str(), m_Objects[_sID].m_ID.c_str()) != 0))
+		return false;
 
-	//---------------------------
+	//--------------------------------
+	//	Check Room
+	//--------------------------------
+	if(!(_act.m_Room.empty())	&& (stricmp(_act.m_Room.c_str(), m_Rooms[m_cRoom].m_ID.c_str()) != 0))
+		return false;
+
+	//--------------------------------
 	//	Check Flag
-	//---------------------------
-	if(_act->m_Flag.empty())
+	//--------------------------------
+	if(_act.m_Flag.empty())
+		return true;
+	else for(int i = m_Flags.size() - 1; i >= 0; --i)
 	{
-		_flag = true;
+		if(stricmp(m_Flags[i].c_str(),_act.m_Flag.c_str()) == 0)
+			return true;
 	}
-	else
+
+	return false;
+}
+//==============================================================
+//	Find Object and Subject
+//==============================================================
+void Instance::findObject(const char* _object, int& _oID, const char* _subject, int& _sID)
+{
+	//------------------------------
+	//	Search for Matching Objects
+	//	Skip FIRST object
+	//------------------------------
+	if(m_Objects.size() > 1)
+	for(unsigned int i = m_Objects.size() - 1; i > 0; --i)
 	{
-		for(unsigned int i = 0; i < m_Flags.size(); ++i)
+		//-------------------------------
+		//	Find VALID Objects
+		//-------------------------------
+		uObject& _obj = m_Objects[i];
+		if( (stricmp(_obj.m_RoomID.c_str(),m_Rooms[1].m_ID.c_str()		) == 0)		||		// Is Object in Inventory
+			(stricmp(_obj.m_RoomID.c_str(),m_Rooms[m_cRoom].m_ID.c_str()) == 0))			// Is Object in Room
 		{
-			if(stricmp(_act->m_Flag.c_str(),m_Flags[i].c_str()) == 0)
+			//-------------------------------
+			//	Match Object
+			//	ASSUME :: OBJECT [1] Word
+			//-------------------------------
+			if((_object) && (stricmp(_obj.m_ID.c_str(),_object) == 0))
 			{
-				_flag = true;
+				_oID = i;
 			}
+			//-------------------------------
+			//	Match Subject
+			//	ASSUME :: SUBJECT [2] Word
+			//-------------------------------
+			else if((_subject) && (stricmp(_obj.m_ID.c_str(),_subject) == 0))
+			{
+				_sID = i;
+			}			
 		}
 	}
-	//------------------------------
-	//	Required Flag Missing
-	//------------------------------
-	if(_flag == 0)
-		return;
-
-	//--------------------------------
-	//	Run Scripts
-	//--------------------------------
-	FP_RUN_SCRIPTS(_iter)
 }
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -468,7 +603,23 @@ void Instance::runScript(aScript& _script)
 	//---------------------------
 	switch(_script.m_Type[0])
 	{
-	case 'a':
+	case 'p':
+	case 'P':
+		{
+			//---------------------------------
+			//	PRINT  
+			//	Arg N - Text
+			//	[META] Text		(Skipping Meta)
+			//---------------------------------
+			for(VecString::iterator _arg = _script.m_Arg.begin(); _arg != _script.m_Arg.end(); ++_arg)
+			{
+				const char* _str =_arg->c_str();
+				if(_str[0] == '[')
+					m_Output.push(strchr(_str,']'));
+				else
+					m_Output.push(_str);
+			}
+		}
 		break;
 	};
 	//---------------------------
