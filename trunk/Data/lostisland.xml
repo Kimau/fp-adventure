@@ -1,0 +1,122 @@
+<Instance>
+<Name>"Space Cadet" by Robert Heinlein :: Chapter 1</Name>
+<Player>Matthew Dodson</Player>
+
+<Object>
+	<Action>
+		<Verb>START</Verb>
+		<Script>
+			<Type>PRINT</Type>
+			<Arg>(Insert Forest Music) from sleep.</Arg>
+			<Arg>A crash of bowls fall down. Wakes you.</Arg>
+		</Script>
+		<Script>
+			<Type>MOVE</Type>
+			<Arg>Shelter</Arg>
+			<Arg>Player</Arg>
+		</Script>
+	</Action>
+</Object>
+
+<Room>
+	<ID>Shelter</ID>
+	<Name>A Rickety Shelter</Name>
+	<Desc>
+	A ricketry shelter from palm leaves, a _EMPTYCRATE_ lies inside the shelter.
+	Small animal tracks lead south.	
+	</Desc>
+	<Pic>shelter.gif</Pic>
+	<EXIT>
+		<ID>Cave</ID>
+		<Name>A small animal path SOUTH into the jungle.</Name>
+	</EXIT>
+	<EXIT>
+		<ID>Plane</ID>
+		<Name>A small track leads NORTH towards plane.</Name>
+	</EXIT>
+</Room>
+
+<Room>
+	<ID>Cave</ID>
+	<Name>A Small Dark Cave</Name>
+	<Desc>
+	A dark little cave is in the side of rocky cliff.
+	Small animal tracks lead into the cave, large bones decorate the floor.
+	</Desc>
+	<Pic>cave.gif</Pic>
+	<EXIT>
+		<ID>Shelter</ID>
+		<Name>A small animal path NORTH towards your SHELTER.</Name>
+	</EXIT>
+</Room>
+
+<Room>
+	<ID>Plane</ID>
+	<Name>A Crashed Plane</Name>
+	<Desc>
+	A small prop plane is crashed into the forest, leaving a long scar.
+	The wings lie in pieces. A small grave marker lies next to the plane.
+	</Desc>
+	<Pic>plane.gif</Pic>
+	<EXIT>
+		<ID>Shelter</ID>
+		<Name>A small track leads SOUTH towards plane.</Name>
+	</EXIT>
+</Room>
+
+<Object>
+	<ID>EmptyCrate</ID>
+	<Name>An empty crate of supplies</Name>
+	<Desc>
+	The crate of supplies has been raided by some small animal.
+	Only a few empty wrappers remain, something red sticks out of the wrappers.
+	</Desc>
+	<Room>Shelter</Room>
+	<Action>
+		<Verb>Search</Verb>
+		<Script>
+			<Type>PRINT</Type>
+			<Arg>You see a small _PENKNIFE_ at the bottom of the crate.</Arg>
+		</Script>
+		<Script>
+			<Type>ADD</Type>
+			<Arg>CRATE</Arg>
+		</Script>
+	</Action>
+</Object>
+
+<Object>
+	<ID>PenKnife</ID>
+	<Name>Small Penknife</Name>
+	<Desc>
+	A small red penknife. It has a small reliable blade and a magnifing glass.
+	</Desc>
+	<Room>Shelter</Room>
+	<Action>
+		<Verb>Get</Verb>
+		<Room>Shelter</Room>
+		<Flag>CRATE</Flag>
+		<Script>
+			<Type>PRINT</Type>
+			<Arg>Got [PENKNIFE]</Arg>
+		</Script>
+		<Script>
+			<Type>DESC</Type>
+			<Arg>EmptyCrate</Arg>
+			<Arg>An empty crate that used to hold supplies.</Arg>
+		</Script>
+		<Script>
+			<Type>MOVE</Type>
+			<Arg>INVENTORY</Arg>
+			<Arg>PENKNIFE</Arg>
+		</Script>
+		<Script>
+			<Type>REMOVE</Type>
+			<Arg>CRATE</Arg>
+		</Script>	
+	</Action>
+</Object>
+
+</Instance>
+
+
