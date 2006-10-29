@@ -87,6 +87,12 @@ bool FPxml::loadElment(FPxitem& _item)
 	//-------------------------------
 	m_cursor = strchr(m_cursor,'<') + 1;	if(m_cursor == 0) return false;
 	FPSTRCHR(_end,'>')
+
+	// WARNING :: Possible Bug if Comment is first thing. 
+
+	//-------------------------------
+	//	Close Item
+	//-------------------------------
 	if(m_cursor[0] == '/')
 	{
 		m_cursor = strchr(m_cursor,'>') + 1;
@@ -128,6 +134,13 @@ bool FPxml::loadElment(FPxitem& _item)
 			_item.m_Data += m_cursor;
 			_end[0] = '<';
 			m_cursor = _end; 
+			//-------------------------------
+			//	Check for Comment
+			//-------------------------------
+			if(m_cursor[1] == '!')
+			{
+				m_cursor = strstr(m_cursor,"-->") + 3;
+			}
 			//-------------------------------
 			//	Check for </
 			//-------------------------------
