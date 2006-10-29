@@ -4,7 +4,20 @@
 
 <Flag>Flag1</Flag>
 <Flag>Flag2</Flag>
-
+<Object>
+	<Action>
+		<Verb>START</Verb>
+		<Script>
+			<Type>PRINT</Type>
+			<Arg>Welcome Cadet</Arg>
+		</Script>
+		<Script>
+			<Type>MOVE</Type>
+			<Arg>IntroTrain1</Arg>
+			<Arg>Player</Arg>
+		</Script>
+	</Action>
+</Object>
 <Room>
 	<ID>IntroTrain1</ID>
 	<Name>The train to Terra Base</Name>
@@ -15,13 +28,23 @@
 </Room>
 
 <Object>
-	<ID>TexTrain</ID>
-	<Name>Tex</Name>
+	<ID>Tex</ID>
+	<Name>Tex Jarman</Name>
 	<Desc>
 	The youth has tusseled sandy blond hair and a silly grin crosses his face. His leather over coat looks dusty, it has Tex stiched on the top left side, his cowboy boots has real spurs on. A large duffel bag is slung over his shoulder. 	
 	</Desc>
 	<Pic>texface.gif</Pic>
 	<Room>IntroTrain1</Room>
+	<!-- TALK TO TEX BEFORE LETTER -->
+	<Action>
+		<Verb>TALK</Verb>
+		<Room>IntroTrain1</Room>
+		<Script>
+			<Type>PRINT</Type>
+			<Arg>The youth appears self occupied in thought.</Arg>
+		</Script>
+	</Action>
+	<!-- TALK TO AFTER LETTER -->
 	<Action>
 		<Verb>TALK</Verb>
 		<Room>IntroTrain1</Room>
@@ -30,7 +53,21 @@
 			<Type>NODE</Type>
 			<Arg>IntroTrain</Arg>
 		</Script>
+		<Script>
+			<Type>PRINT</Type>
+			<Arg>That paper looks familiar, you a candidate too. Well shake! M' name's Jarman - I'm from Texas.\
+			Howdy, Matt. We ought to be about... there.</Arg>
+			<Arg>[DARK]</Arg>
+			<Arg>The car has come to an abrupt stop.</Arg>
+		</Script>
+		<Script>
+			<Type>MOVE</Type>
+			<Arg>IntroTrain2</Arg>
+			<Arg>Player</Arg>
+			<Arg>Tex</Arg>
+		</Script>
 	</Action>
+	<!-- TALK TO TRAIN STOPS -->
 	<Action>
 		<Verb>TALK</Verb>
 		<Room>IntroTrain2</Room>
@@ -40,9 +77,9 @@
 		</Script>
 	</Action>
 </Object>
-
+<!--
 <Node>
-	<Tag>IntroTrain1</Tag>
+	<Tag>TalkTex01</Tag>
 	<Out>That Paper looks familiar, you a candidate too. Well shake! M' name's Jarman - I'm from Texas.</Out>
 	<Node>
 		<In>Glad to know you, Tex. I'm Matt Dodson, from Des Moines.</In>
@@ -51,7 +88,7 @@
 			<Type>MOVE</Type>
 			<Arg>IntroTrain2</Arg>
 			<Arg>Player</Arg>
-			<Arg>TexTrain</Arg>
+			<Arg>Tex</Arg>
 		</Script>
 		<Script>
 			<Type>VAR</Type>
@@ -60,28 +97,25 @@
 		</Script>
 	</Node>
 </Node>
-
+-->
 <Object>
-	<ID>IntroLetter</ID>
+	<ID>Letter</ID>
 	<Name>Acceptence letter from the Patrol</Name>
 	<Desc>
 	The acceptence letter from the Patrol, its dog eared from you reading it over and over.
 	Prehaps reading it will ease your mind.
 	</Desc>
-	<Pic>IntroLetter.gif</Pic>
+	<Pic>Letter.gif</Pic>
 	<Room>INVENTORY</Room>
 	<Action>
 		<Verb>Read</Verb>
-		<Flag>ReadLetter</Flag>
 		<Script>
 			<Type>PRINT</Type>
-			<Arg>
-				The acceptence letter from the Patrol reads.
-				To Matthew Brooks Dodson, \v
-				Greetings, having successfully completed the field elimination tests for appointment to the position of cadet in the Interplantery Patrol. You are authorised to report to the Commandant, Terra Base, Santa Barbara Field, Colorado, North American Union, Terra, on or before One July 2085, for further examination.\v
-				You are cautioned to remember that the majority of candidates taking the final tests usaully fail and you should provide... \v
-				The letter reads on about returning home, something your not intrested in. You fold the letter and place it back in your belt pouch, disinstrested.
-			</Arg>
+			<Arg>The acceptence letter from the Patrol reads.</Arg>
+			<Arg>To Matthew Brooks Dodson,\
+				Greetings, having successfully completed the field elimination tests for appointment to the position of cadet in the Interplantery Patrol. You are authorised to report to the Commandant, Terra Base, Santa Barbara Field, Colorado, North American Union, Terra, on or before One July 2085, for further examination.</Arg>
+				<Arg>You are cautioned to remember that the majority of candidates taking the final tests usaully fail and you should provide...\
+				The letter reads on about returning home, something your not intrested in. You fold the letter and place it back in your belt pouch, disinstrested.</Arg>
 		</Script>
 		<Script>
 			<Type>ADD</Type>
@@ -89,6 +123,7 @@
 		</Script>
 		<Script>
 			<Type>DESC</Type>
+			<Arg>Letter</Arg>
 			<Arg>The acceptence letter from the Patrol, its dog eared contents reassure you.</Arg>		
 		</Script>		
 	</Action>
@@ -100,7 +135,7 @@
 	<Desc>
 	The train has arrived at Terra Base. Tex has his duffle bag ready and is waiting at the door looking at you expectly.
 	</Desc>
-	<Pic>test.gif</Pic>
+	<Pic>test2.gif</Pic>
 	<Exit>
 		<ID>Outside</ID>
 		<Name>Door leading out of the car to Terra base.</Name>
