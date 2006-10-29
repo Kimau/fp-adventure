@@ -1,5 +1,7 @@
 #include "AdvInst.h"
 #include <stdio.h>
+#include <assert.h>
+#include <time.h>
 
 #define FPX_CASE(var,low,high)		\
 			case low:	case high:	\
@@ -16,7 +18,8 @@ using namespace FPAdv;
 //==============================================================
 Instance::Instance()
 {
-	m_cRoom = 2;
+	m_cRoom = 0;
+	m_TimeStart = time(0);
 	//-------------------------------
 	//	Create Nowhere
 	//-------------------------------
@@ -34,8 +37,8 @@ Instance::Instance()
 	//	Create Action Space
 	//-------------------------------
 	m_Objects.push_back(uObject());
-	m_Objects[0].m_ID = "NOOBJ";
-	m_Objects[0].m_RoomID = "INVENTORY";
+	m_Objects[0].m_ID = "PLAYER";
+	m_Objects[0].m_RoomID = "NOWHERE";
 	m_Objects[0].m_Name = "No Object, just actionspace";
 	m_Objects[0].m_Desc = "This is a blank action space.";
 }
@@ -44,6 +47,14 @@ Instance::Instance()
 //==============================================================
 Instance::~Instance()
 {
+}
+//==============================================================
+//==============================================================
+void Instance::start()
+{
+	m_cRoom = 0;
+	m_TimeStart = time(0);
+	inputCmd("START");
 }
 //==============================================================
 //	Fetch Output
@@ -90,20 +101,48 @@ void Instance::loadXML(const char* _filename)
 	//-------------------------------
 	//	Cleans out Bad Objects
 	//-------------------------------
-	vector<uObject>::iterator _obj = m_Objects.begin();
+	vector<uObject>::iterator _obj = m_Objects.begin() + 1;
 	while(_obj != m_Objects.end())
 	{
-		if(_obj->m_ID.empty())
+		//--------------------------------------
+		//	Takes Actions out of 
+		//	NULL Objects and PLAYER Objects
+		//	Then places into Player
+		//--------------------------------------
+		if((_obj->m_ID.empty()) || (stricmp(_obj->m_ID.c_str(),"PLAYER") == 0))
 		{
 			m_Objects[0].m_Actions.insert(m_Objects[0].m_Actions.end(),_obj->m_Actions.begin(),_obj->m_Actions.end());
 			m_Objects.erase(_obj);
 		}
-		else if(_obj->m_RoomID.empty())
+		else 
 		{
-			_obj->m_RoomID = m_Rooms[0].m_ID;
+			//--------------------------------------
+			//	Meld Duplicates
+			//	Saves Duplicates Actions
+			//	Discards Duplicates information
+			//--------------------------------------
+			/* NEEDS FIX
+			for(vector<uObject>::iterator _cur = _obj; _cur != m_Objects.end(); ++_cur)
+			{
+				if(stricmp(_obj->m_ID.c_str(),_cur->m_ID.c_str()) == 0)
+				{
+					_obj->m_Actions.insert(_obj->m_Actions.end(),_cur->m_Actions.begin(),_cur->m_Actions.end());
+					m_Objects.erase(_cur);
+				}
+			}*/
+
+			if(_obj->m_RoomID.empty())
+			{
+				_obj->m_RoomID = m_Rooms[0].m_ID;
+			}
 		}
 		++_obj;
 	}
+
+	//----------------------------------
+	//	Places Player in Starting Room
+	//----------------------------------
+	m_Objects[0].m_RoomID = m_Rooms[m_cRoom].m_ID;
 }
 //==============================================================
 //	Process XML Item
@@ -348,8 +387,8 @@ void Instance::inputCmd(char* _input)
 	while(_tok)
 	{
 		if(
-			(strlen(_tok) > 2)			&&		// Not too Short
-			(strlen(_tok) < 12)			&&		// Not too Long
+/*			(strlen(_tok) > 2)			&&		// Not too Short
+			(strlen(_tok) < 12)			&&		// Not too Long*/
 			(stricmp(_tok,"WITH") != 0)	&&		// ------------- 
 			(stricmp(_tok,"THE") != 0)	&&		// Ignore words players use that messes things up
 			(stricmp(_tok,"THIS") != 0)	&&		// ------------- 
@@ -434,6 +473,26 @@ void Instance::inputCmd(char* _input)
 		return;
 	}
 	else 
+	//-------------------------------------
+	//	TIME
+	//	Prints out Time Since play started
+	//-------------------------------------
+	if( (stricmp(_words[0],"TIME") == 0)		|| 
+		(stricmp(_words[0],"CLOCK") == 0))
+	{
+		int _sec = (int)difftime(time(0), m_TimeStart);
+
+		int _hours = _sec / (60*60);
+		_sec -= _hours * (60*60);
+		int _min = _sec / (60);
+		_sec -= _min * (60);
+
+		char _buffer[50] = {0};
+		sprintf(_buffer,"Play Time \\ %i : %02i : %02i",_hours, _min, _sec);
+		m_Output.push(_buffer);
+		return;
+	}
+	else
 	//-----------------------------------
 	//	EXIT
 	//	Uses Exit
@@ -447,7 +506,14 @@ void Instance::inputCmd(char* _input)
 		//------------------------
 		if(_words.size() > 1)
 		{
-			m_Output.push(m_Objects[_objectID].m_Desc);
+			int c = findRoom(m_Rooms[m_cRoom].m_Exits[atoi(_words[1])].m_RoomID.c_str());
+			if((c != m_cRoom) && (c >= 0))
+			{
+				m_cRoom = c;
+				string _str = "[BACKDROP] ";
+				_str += m_Rooms[m_cRoom].m_BackImg;
+				m_Output.push(_str.c_str()); 
+			}
 		}
 		//------------------------
 		//	PRINT OUT EXITS
@@ -455,9 +521,9 @@ void Instance::inputCmd(char* _input)
 		else if(m_Rooms[m_cRoom].m_Exits.size() > 0)
 		{
 			string _str = "EXITS \\";
-			for(int i = m_Rooms[m_cRoom].m_Exits.size() - 1; i >= 0; --i)
+			for(unsigned int i = 0; i < m_Rooms[m_cRoom].m_Exits.size(); ++i)
 			{
-				_str += i;
+				_str += i + 48;
 				_str += ". ";
 				_str += m_Rooms[m_cRoom].m_Exits[i].m_Name;
 				_str += "\\ ";
@@ -477,16 +543,29 @@ void Instance::inputCmd(char* _input)
 	//-----------------------------
 	//	Inform Player of Results
 	//-----------------------------
-	if(_objectID < 0)
+	if(_words.size() > 1)
 	{
-		char _buffer[30] = {0};
-		strcat(_buffer,"I see no ");
-		strcat(_buffer,_words[1]);
-		strcat(_buffer," nearby.");
-		m_Output.push(_buffer);
+		if(_objectID < 0)
+		{
+			string _buffer;
+			_buffer = "I see no ";
+			_buffer = _words[1];
+			_buffer = " nearby.";
+			m_Output.push(_buffer.c_str());
+		}
+		else
+			m_Output.push("You cant do that at the moment");
 	}
 	else
-		m_Output.push("You cant do that at the moment");
+	{
+		//----------------------
+		//	Non Standerd Verb
+		//----------------------
+		string _buffer;
+		_buffer = _words[0];
+		_buffer += " is not a action you can perform.";
+		m_Output.push(_buffer.c_str());
+	}
 }
 //==============================================================
 //	Removes Leading/Trailing Spaces
@@ -559,7 +638,7 @@ void Instance::findObject(const char* _object, int& _oID, const char* _subject, 
 	//	Skip FIRST object
 	//------------------------------
 	if(m_Objects.size() > 1)
-	for(unsigned int i = m_Objects.size() - 1; i > 0; --i)
+	for(int i = m_Objects.size() - 1; i > -1; --i)
 	{
 		//-------------------------------
 		//	Find VALID Objects
@@ -586,8 +665,27 @@ void Instance::findObject(const char* _object, int& _oID, const char* _subject, 
 			}			
 		}
 	}
+	//-------------------------------
+	//	CANNNOT FIND OBJECT
+	//-------------------------------
+	assert(("ERROR - BAD OBJECT") && (_object));
 }
-
+//==============================================================
+//	Find Room
+//==============================================================
+int Instance::findRoom(const char* _room)
+{
+	for(unsigned int c = 0; c < m_Rooms.size(); ++c)
+	{
+		if(stricmp(m_Rooms[c].m_ID.c_str(),_room) == 0)
+			return c;
+	}
+	//---------------------------------
+	//	Cannot Find Room
+	//---------------------------------
+	assert(("ERROR - BAD ROOM") && (_room));
+	return -1;
+}
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //								SCRIPT
@@ -614,18 +712,146 @@ void Instance::runScript(aScript& _script)
 			for(VecString::iterator _arg = _script.m_Arg.begin(); _arg != _script.m_Arg.end(); ++_arg)
 			{
 				const char* _str =_arg->c_str();
-				if(_str[0] == '[')
-					m_Output.push(strchr(_str,']'));
-				else
-					m_Output.push(_str);
+				m_Output.push(_str);
 			}
+			return;
 		}
-		break;
-	};
-	//---------------------------
-	//	Process Args
-	//---------------------------
+	case 'a':
+	case 'A':
+		{
+			//---------------------------------
+			//	ADD FLAGS
+			//	Arg N - Flags to Add
+			//---------------------------------
+			for(VecString::iterator _arg = _script.m_Arg.begin(); _arg != _script.m_Arg.end(); ++_arg)
+			{
+				m_Flags.push_back(_arg->c_str());
+			}
+			return;
+		}
+	case 'r':
+	case 'R':
+		{
+			//---------------------------------
+			//	REMOVE FLAGS
+			//	Arg N - Flags to Remove
+			//---------------------------------
+			for(VecString::iterator _arg = _script.m_Arg.begin(); _arg != _script.m_Arg.end(); ++_arg)
+			{
+				unsigned int f = 0;
+				while(f < m_Flags.size())
+				{
+					if(stricmp(m_Flags[f].c_str(),_arg->c_str()) == 0)
+					{
+						// REMOVE FLAG
+					}
+					else
+					{
+						++f;
+					}
+				}
+			}
+			return;
+		}
+	case 'm':
+	case 'M':
+		{
+			//---------------------------------
+			//	MOVE OBJECTS
+			//	Arg 0 - Destination Room
+			//	Arg [1..N] - Objects
+			//---------------------------------
+			assert((_script.m_Arg.size() >= 2) && ("SCRIPT ERROR - DOES NOT PROVIDE ENOUGH ARGS"));
+			{
+				VecString::iterator _arg = _script.m_Arg.begin();
+				++_arg;
+				while(_arg != _script.m_Arg.end())
+				{
+					//---------------------------------
+					//	Checks PLAYER
+					//---------------------------------
+					if(stricmp(_arg->c_str(),"PLAYER") == 0)
+					{
+						m_Objects[0].m_RoomID = _script.m_Arg[0];
+					}
+					else
+					{
+						int _objID = -1;
+						findObject(_arg->c_str(),_objID,0,_objID);
+						//---------------------------------
+						//	OBJECT found
+						//---------------------------------
+						if(_objID >= 0)
+						{
+							m_Objects[_objID].m_RoomID = _script.m_Arg[0];
+						}
+					}
+					++_arg;
+				}
+				//---------------------------------
+				//	Updates Quick Room Index
+				//---------------------------------
+				int _newRoom = findRoom(m_Objects[0].m_RoomID.c_str());
+				if((m_cRoom != _newRoom) && (_newRoom >= 0))
+				{
+					m_cRoom = _newRoom;
+					string _str = "[BACKDROP] ";
+					_str += m_Rooms[m_cRoom].m_BackImg;
+					m_Output.push(_str.c_str()); 
+				}
+			}
+			return;
+		}
+	case 'd':
+	case 'D':
+		{
+			//---------------------------------
+			//	CHANGE DESC
+			//	Arg 0 - Object ID
+			//	Arg 1 - New Desc
+			//---------------------------------
+			assert((_script.m_Arg.size() >= 2) && ("SCRIPT ERROR - DOES NOT PROVIDE ENOUGH ARGS"));
 
+			{
+				int _objID = -1;
+				findObject(_script.m_Arg[0].c_str(),_objID,0,_objID);
+
+				assert((_objID >= 0) && ("ERROR - BAD OBJECT"));
+
+				if(_objID >= 0)
+				{
+					m_Objects[_objID].m_Desc = _script.m_Arg[1];
+				}
+			}
+			return;
+		}
+	default:
+			//---------------------------------
+			//	UNHANDELED SCRIPT
+			//---------------------------------
+		{
+			m_Output.push("Unhandled Script");
+			errorScript(_script);
+			return;
+		};
+	};
+}
+//==============================================================
+//	PRINT OUT SCRIPT :: Used for Debugging
+//==============================================================
+void Instance::errorScript(aScript& _script)
+{
+	string _temp = "TYPE <";
+	_temp += _script.m_Type;
+	_temp += ">";
+	
+	for(VecString::iterator _arg = _script.m_Arg.begin(); _arg != _script.m_Arg.end(); ++_arg)
+	{
+		_temp += "\\ - ";
+		_temp += *(_arg);
+	}
+
+	m_Output.push(_temp);
 }
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

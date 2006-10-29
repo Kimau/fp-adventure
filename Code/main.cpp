@@ -9,6 +9,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	//	Init 
 	//-----------------------------------
 	g_State = GS_INTRO;
+	g_Background = 0;
 	unsigned long _oldTime = KMiscTools::getMilliseconds();
 	unsigned long _newTime = 0;
 
@@ -23,11 +24,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	KTrueText _font("5by5.ttf");
 	g_gameTxt = &_font;
 
-	g_gfxVector.push_back(KPTK::createKGraphic("test.gif"));
+	g_gfxVector.push_back(KPTK::createKGraphic("black.gif"));
+	g_gfxNames.push_back("black.gif");
 
 	g_gameWin->setPTKCallBack(&EventHandler);
 
-	g_Inst.loadXML("Space.xml");
+	g_Inst.loadXML("lostisland.xml");
+	g_Inst.start();
 	//-----------------------------------
 	//	Main Loop
 	//-----------------------------------
@@ -63,7 +66,17 @@ bool EventHandler(KEvent* _eventPtr)
 		if(!(g_Output.empty()))
 		{
 			if(_eventPtr->ptkKey == K_VK_RETURN)
+			{
 				g_Output = g_Inst.fetchOutput();
+				//-----------------------------
+				//	Scan for Meta Output
+				//	Only if Output is returned
+				//-----------------------------
+				if(!(g_Output.empty()))
+				{
+					ScanMeta();
+				}
+			}
 		}
 		//---------------------------------------------
 		//		Process Input
@@ -112,11 +125,30 @@ void IntroStep()
 {
 	while((g_State == GS_INTRO) && (g_gameWin->isQuit() == false))
 	{
+		//-----------------------------
+		//	Render Scence
+		//-----------------------------
 		IntroRender();
 
+		//-----------------------------
+		//	Fetch Output if Ready
+		//-----------------------------
 		if(g_Output.empty())
+		{
 			g_Output = g_Inst.fetchOutput();
+			//-----------------------------
+			//	Scan for Meta Output
+			//	Only if Output is returned
+			//-----------------------------
+			if(!(g_Output.empty()))
+			{
+				ScanMeta();
+			}
+		}
 
+		//-----------------------------
+		//	Process Events
+		//-----------------------------
 		g_gameWin->processEvents();
 	};
 }
@@ -131,7 +163,10 @@ void IntroRender()
 	//-------------------------
 	g_gameWin->setDefaultWorldView();
 	g_gameWin->setClearColor(0,0,1,0);
-	g_gfxVector[0]->blitRectFx(0,0,320,200,160,100 ,0,2);
+	if(g_Background >= 0)
+		g_gfxVector[g_Background]->blitRectFx(0,0,320,200,160,100 ,0,2);
+	else
+		g_gfxVector[0]->drawRect(0,0,640,400,0,0,0,1);
 
 	//-------------------------
 	//	Print Output
@@ -175,39 +210,31 @@ void PrintInput()
 	g_gameTxt->drawStringFromLeft(g_inStr,30,372);
 }
 //========================================================================
-//	Render Output Textbox
+//	Render Output
 //========================================================================
 void PrintBox(const char* _input)
 {
-	UINT _size = strlen(_input);
-	UINT _width = 0;
-	UINT _height = 0;
+	//-------------------------------------
+	//	Print Textual Output
+	//-------------------------------------
+	{
+		UINT _size = strlen(_input);
+		UINT _width = 0;
+		UINT _height = 0;
 
-	if(_size < 50)
-	{
-		_height = 1;
-		_width = _size;
-	}
-	else if(_size < 50)
-	{
-		_height = 3;
-		_width = _size / _height;		
-	}
-	else if(_size <200)
-	{
-		_width = _size % 24;
-		_height = _size / _width;
-	}
-	else
-	{
 		_width = 28;
-		_height = _size / 28;
-	}
-	_width  = UINT(_width * FP_CHAR_WDTH);
-	_height *= 17;
+		_height = 10;// _size / 28;
 
-	PrintBox(320 - _width,20,320 + _width, 30 + _height, _input);
+		_width  = UINT(_width * FP_CHAR_WDTH);
+		_height *= 17;
+
+		PrintBox(320 - _width,20,320 + _width, 30 + _height, _input);
+	}
 }
+
+//========================================================================
+//	Print a Box of Text
+//========================================================================
 void PrintBox(UINT _topX, UINT _topY, UINT _botX, UINT _botY, const char* _input)
 {
 	//---------------------------
@@ -266,4 +293,98 @@ void PrintBox(UINT _topX, UINT _topY, UINT _botX, UINT _botY, const char* _input
 		_topY += 18;
 	}
 	delete[] _str;
+}
+//========================================================================
+//	Print a Box of Text
+//========================================================================
+void ScanMeta()
+{
+	//-------------------------------------
+	//	Check for Meta
+	//-------------------------------------
+	char* _temp = new char[g_Output.size() + 1];
+	strcpy(_temp,g_Output.c_str());
+	char* _meta = strchr(_temp,'[');
+	if(_meta)
+	{
+		//----------------------------
+		//	Get META string
+		//----------------------------
+		++_meta;
+		char* _end = strchr(_meta,']');
+		_end[0] = 0;
+
+		switch(_meta[0])
+		{
+		case 'b':
+		case 'B':
+			//----------------------------
+			//	Backdrop Image
+			//----------------------------
+			{
+				//---------------------------------
+				//	Skip Ahead
+				//---------------------------------
+				++_end;
+				while(_end[0] == ' ')
+				{
+					++_end;
+				}
+				//------------------------------------
+				//	Attempt to Reuse Image
+				//------------------------------------
+				bool _found = false;
+				for(unsigned int c = 0; c < g_gfxNames.size(); ++c)
+				{
+					if(stricmp(g_gfxNames[c].c_str(),_end) == 0)
+					{
+						g_Background = c;
+						_found = true;
+					}
+				}
+				//------------------------------------
+				//	Add Image
+				//------------------------------------
+				if(!_found)
+				{
+					KGraphic* _gfx = KPTK::createKGraphic(_end);
+					if(_gfx)
+					{
+						g_gfxVector.push_back(_gfx);
+						g_gfxNames.push_back(_end+1);
+						g_Background = g_gfxVector.size() - 1;
+					}
+					else
+					{
+						//------------------------------------
+						//	NO IMAGE FOUND
+						//------------------------------------
+						g_Background = 0;
+						g_Output = "IMAGE <";
+						g_Output += _end;
+						g_Output += "> NOT FOUND";
+
+						delete[] _temp;
+						return;
+					}
+				}
+			}
+			break;
+		case 'd':
+		case 'D':
+			{
+				g_Background = -1;
+			}
+			break;
+		default:
+			PrintBox(220,20,420, 40, _meta);
+			PrintBox(220,50,420, 80, _end+1);
+			break;
+		};
+		//------------------------------
+		//	Remove META from Output
+		//------------------------------
+		g_Output.clear();
+	}
+	delete[] _temp;
 }

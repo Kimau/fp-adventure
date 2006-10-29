@@ -24,12 +24,14 @@ enum GameState{GS_NULL = -1, GS_INTRO, GS_READY, GS_PLAY};
 KWindow*	g_gameWin;			// PTK Window
 KTrueText*	g_gameTxt;			// PTK Text Instance
 vector<KGraphic*> g_gfxVector;	// List of PTK graphic containers
+vector<string> g_gfxNames;		// List of PTK graphic names
 
 char		g_inStr[50];		// Input Buffer
 int			g_inSize;			// Input Size Holder
 GameState	g_State;			// Game State
 unsigned long g_Delta;			// Delta Time
 string		g_Output;			// If game is in playback mode
+int			g_Background;		// Background Image
 
 Instance	g_Inst;				// Instance of Game
 
@@ -42,5 +44,6 @@ void IntroRender();
 void PrintInput();
 void PrintBox(const char* _input);
 void PrintBox(UINT _topX, UINT _topY, UINT _botX, UINT _botY, const char* _input);
+void ScanMeta();
 
 #endif

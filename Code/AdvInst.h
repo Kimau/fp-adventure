@@ -25,6 +25,7 @@ public:
 	Instance();
 	~Instance();
 
+	void start();
 	void loadXML(const char* _filename);
 	void inputCmd(char* _input);
 	// OUT GRAPHICS CMDS
@@ -41,12 +42,14 @@ private:
 	//-------------------------------
 	void prepString(char* _input);
 	void findObject(const char* _object, int& _oID, const char* _subject, int& _sID);
+	int findRoom(const char* _room);
 	bool checkAction(TrigAction& _act, const char* _verb, int _sID);
 	
 	//-------------------------------
 	//	Script Functions
 	//-------------------------------
 	void runScript(aScript& _script);
+	void errorScript(aScript& _script);
 	//-------------------------------
 	//	Locator Functions
 	//-------------------------------
@@ -59,6 +62,7 @@ private:
 	//-------------------------------
 	string	m_InstName;			// Name of Instance
 	string	m_PlayName;			// Name of main character
+	long	m_TimeStart;		// Time that instance was started
 	int		m_cRoom;			// Current Room Index
 	queue<string>		m_Output;	// Queue of Output Strings
 	VecString			m_Flags;	// List of Flags
